@@ -1,27 +1,30 @@
+# ====================================
 # Pipster Identity Server - Docker Compose Configuration
-# This file defines all services needed for local development and production
+# ====================================
+# This file uses .env for all configuration
+# Copy .env.example to .env and customize
+# ====================================
 
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: pipster-postgres
-    restart: unless-stopped
+    restart: ${RESTART_POLICY:-unless-stopped}
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pipster_identity_dev
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      # Simplified healthcheck - just check if postgres is ready
-      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} || exit 1"]
+      interval: ${HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${HEALTHCHECK_TIMEOUT:-10s}
+      retries: ${HEALTHCHECK_RETRIES:-10}
+      start_period: ${HEALTHCHECK_START_PERIOD:-60s}
     networks:
       - pipster-network
 
@@ -32,29 +35,44 @@ services:
       dockerfile: Dockerfile
     image: pipster-identity:latest
     container_name: pipster-identity
-    restart: unless-stopped
+    restart: ${RESTART_POLICY:-unless-stopped}
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      # Run HTTP only inside container (production pattern)
+      # ASP.NET Core Environment
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_HTTP_PORTS=80
-      # CRITICAL: Use service name 'postgres' as hostname
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=pipster_identity_dev;Username=postgres;Password=postgres
-      - IdentityServer__IssuerUri=http://localhost:5000
+      
+      # Database Connection (constructed from individual variables)
+      - ConnectionStrings__DefaultConnection=Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USERNAME};Password=${DB_PASSWORD}
+      
+      # IdentityServer Configuration
+      - IdentityServer__IssuerUri=${IDENTITYSERVER_ISSUER_URI}
+      - IdentityServer__PublicOrigin=${IDENTITYSERVER_PUBLIC_ORIGIN:-}
+      
+      # Logging Configuration
+      - Serilog__MinimumLevel__Default=${LOG_LEVEL:-Information}
+      - Serilog__MinimumLevel__Override__Microsoft=${LOG_LEVEL_MICROSOFT:-Warning}
+      - Serilog__MinimumLevel__Override__Microsoft.AspNetCore=${LOG_LEVEL_MICROSOFT:-Warning}
+      - Serilog__MinimumLevel__Override__Duende.IdentityServer=${LOG_LEVEL_DUENDE:-Information}
+      
+      # Optional: Security & Performance
+      # - JWT_SIGNING_KEY=${JWT_SIGNING_KEY:-}
+      # - DATA_PROTECTION_KEY=${DATA_PROTECTION_KEY:-}
+      # - DB_MAX_POOL_SIZE=${DB_MAX_POOL_SIZE:-100}
+      # - DB_MIN_POOL_SIZE=${DB_MIN_POOL_SIZE:-10}
     ports:
-      - "5000:80"
+      - "${IDENTITY_HTTP_PORT:-5000}:80"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - pipster-network
     healthcheck:
-      # Use wget (available in aspnet base image) instead of curl
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/health/live || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      interval: ${HEALTHCHECK_INTERVAL:-30s}
+      timeout: ${HEALTHCHECK_TIMEOUT:-10s}
+      retries: ${HEALTHCHECK_RETRIES:-3}
+      start_period: ${HEALTHCHECK_START_PERIOD:-60s}
 
 # Named volumes for data persistence
 volumes:

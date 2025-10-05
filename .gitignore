@@ -361,3 +361,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/.env
+/env.production
+/env.staging
+/.env
+
+# Environment files with real secrets
+.env
+.env.*
+!.env.example
+!.env.staging
+!.env.production
