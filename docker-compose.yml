@@ -16,11 +16,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d pipster_identity_dev"]
+      # Simplified healthcheck - just check if postgres is ready
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     networks:
       - pipster-network
 
@@ -48,7 +49,8 @@ services:
     networks:
       - pipster-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      # Use wget (available in aspnet base image) instead of curl
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

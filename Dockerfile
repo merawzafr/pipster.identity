@@ -26,6 +26,11 @@ RUN dotnet publish "pipster.identity.csproj" \
 # Stage 2: Runtime (Production)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
+# Install wget for healthcheck
+RUN apt-get update && \
+    apt-get install -y wget && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 
@@ -34,10 +39,6 @@ COPY --from=build /app/publish .
 
 # Expose HTTP port (HTTPS handled by reverse proxy)
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
 
 # Environment variables
 ENV ASPNETCORE_URLS=http://+:80 \
