@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Pipster.Identity;
 using Pipster.Identity.Data;
 using Pipster.Identity.Models;
+using Pipster.Identity.Health;
 using Serilog;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
 
 // Configure Serilog for logging
 Log.Logger = new LoggerConfiguration()
@@ -98,6 +101,15 @@ try
         options.AccessDeniedPath = "/Account/AccessDenied";
     });
 
+    // Add health checks
+    builder.Services.AddHealthChecks()
+        .AddCheck<DatabaseHealthCheck>(
+            name: "database",
+            tags: new[] { "db", "postgres", "ready" })
+        .AddCheck<IdentityServerHealthCheck>(
+            name: "identityserver",
+            tags: new[] { "identityserver", "ready" });
+
     var app = builder.Build();
 
     // Apply migrations automatically in development
@@ -139,6 +151,54 @@ try
     app.UseIdentityServer();
 
     app.UseAuthorization();
+
+    // Map health check endpoints
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        Predicate = _ => true,
+        ResponseWriter = async (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+
+            var result = JsonSerializer.Serialize(new
+            {
+                status = report.Status.ToString(),
+                timestamp = DateTime.UtcNow,
+                checks = report.Entries.Select(e => new
+                {
+                    name = e.Key,
+                    status = e.Value.Status.ToString(),
+                    description = e.Value.Description,
+                    duration = e.Value.Duration.TotalMilliseconds,
+                    data = e.Value.Data
+                })
+            });
+
+            await context.Response.WriteAsync(result);
+        }
+    });
+
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains("ready"),
+        ResponseWriter = async (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+
+            var result = JsonSerializer.Serialize(new
+            {
+                status = report.Status.ToString(),
+                timestamp = DateTime.UtcNow
+            });
+
+            await context.Response.WriteAsync(result);
+        }
+    });
+
+    app.MapHealthChecks("/health/live", new HealthCheckOptions
+    {
+        Predicate = _ => false // No checks, just returns 200 OK if app is running
+    });
 
     app.MapRazorPages();
 
