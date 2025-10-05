@@ -11,6 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="docs\pipster-deployment-roadmap.md" />
+    <Compile Include="Scripts\deploy-production.sh" />
+    <Compile Include="Scripts\deploy-production.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Duende.IdentityServer" Version="7.0.8" />
     <PackageReference Include="Duende.IdentityServer.AspNetIdentity" Version="7.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
