@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  identity:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=pipster_identity_dev;Username=postgres;Password=postgres
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - pipster-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  pipster-network:
+    external: true

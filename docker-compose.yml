@@ -1,6 +1,8 @@
-version: '3.8'
+# Pipster Identity Server - Docker Compose Configuration
+# This file defines all services needed for local development and production
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: pipster-postgres
@@ -14,37 +16,50 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pipster_identity_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - pipster-network
 
-  # Identity Server (when running via docker-compose)
+  # Identity Server Application
   identity:
     build:
       context: .
       dockerfile: Dockerfile
+    image: pipster-identity:latest
     container_name: pipster-identity
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=https://+:443;http://+:80
+      # Run HTTP only inside container (production pattern)
+      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_HTTP_PORTS=80
+      # CRITICAL: Use service name 'postgres' as hostname
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=pipster_identity_dev;Username=postgres;Password=postgres
+      - IdentityServer__IssuerUri=http://localhost:5000
     ports:
       - "5000:80"
-      - "5001:443"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - pipster-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
+# Named volumes for data persistence
 volumes:
   postgres_data:
     driver: local
 
+# Network configuration
 networks:
   pipster-network:
     driver: bridge
