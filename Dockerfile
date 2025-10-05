@@ -1,30 +1,48 @@
-# Consultez https://aka.ms/customizecontainer pour savoir comment personnaliser votre conteneur de débogage et comment Visual Studio utilise ce Dockerfile pour générer vos images afin d’accélérer le débogage.
+# ==================================
+# Pipster Identity Server - Production Dockerfile
+# Multi-stage build for optimal image size and security
+# ==================================
 
-# Cet index est utilisé lors de l’exécution à partir de VS en mode rapide (par défaut pour la configuration de débogage)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
-
-# Cette phase est utilisée pour générer le projet de service
+# Stage 1: Build & Publish
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
+
 WORKDIR /src
-COPY ["pipster.identity.csproj", "."]
-RUN dotnet restore "./pipster.identity.csproj"
+
+# Copy project file and restore (cached layer for faster rebuilds)
+COPY ["pipster.identity.csproj", "./"]
+RUN dotnet restore "pipster.identity.csproj"
+
+# Copy source code
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "./pipster.identity.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# Cette étape permet de publier le projet de service à copier dans la phase finale
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./pipster.identity.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+# Build and publish in one step (simpler, more reliable)
+RUN dotnet publish "pipster.identity.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
 
-# Cette phase est utilisée en production ou lors de l’exécution à partir de VS en mode normal (par défaut quand la configuration de débogage n’est pas utilisée)
-FROM base AS final
+# Stage 2: Runtime (Production)
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+
+# Set working directory
 WORKDIR /app
-COPY --from=publish /app/publish .
+
+# Copy published application from build stage
+COPY --from=build /app/publish .
+
+# Expose HTTP port (HTTPS handled by reverse proxy)
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:80/health || exit 1
+
+# Environment variables
+ENV ASPNETCORE_URLS=http://+:80 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    ASPNETCORE_HTTP_PORTS=80
+
+# Entry point
 ENTRYPOINT ["dotnet", "pipster.identity.dll"]
