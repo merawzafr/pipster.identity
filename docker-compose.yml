@@ -21,6 +21,26 @@ services:
     networks:
       - pipster-network
 
+  # Identity Server (when running via docker-compose)
+  identity:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pipster-identity
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=pipster_identity_dev;Username=postgres;Password=postgres
+    ports:
+      - "5000:80"
+      - "5001:443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pipster-network
+
 volumes:
   postgres_data:
     driver: local
