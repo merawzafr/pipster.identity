@@ -1,6 +1,6 @@
 # ==================================
-# Pipster Identity Server - Production Dockerfile
-# Multi-stage build for optimal image size and security
+# Pipster Identity Server - Multi-Configuration Dockerfile
+# Supports both Debug (for VS debugging) and Release (for production)
 # ==================================
 
 # Stage 1: Build & Publish
@@ -16,19 +16,26 @@ RUN dotnet restore "pipster.identity.csproj"
 # Copy source code
 COPY . .
 
-# Build and publish in one step (simpler, more reliable)
+# Build and publish
 RUN dotnet publish "pipster.identity.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
     --no-restore \
     /p:UseAppHost=false
 
-# Stage 2: Runtime (Production)
+# Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
 # Install wget for healthcheck
 RUN apt-get update && \
     apt-get install -y wget && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install debugger for Visual Studio remote debugging (only adds ~10MB)
+# This allows VS to attach to the container
+RUN apt-get update && \
+    apt-get install -y curl unzip && \
+    curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg && \
     rm -rf /var/lib/apt/lists/*
 
 # Set working directory

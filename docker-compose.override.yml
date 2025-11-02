@@ -1,0 +1,43 @@
+services:
+  identity:
+    build:
+      context: .
+      dockerfile: Dockerfile.debug
+    image: pipster-identity:dev
+    container_name: pipster-identity
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      
+      # Database connection
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-pipster_identity};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+      
+      # Logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft.AspNetCore=Information
+      - Logging__LogLevel__Microsoft.Hosting.Lifetime=Information
+      
+    ports:
+      - "5000:80"
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    networks:
+      - pipster-network
+    
+    # Disable healthcheck for now
+    healthcheck:
+      disable: true
+
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+volumes:
+  postgres_data:
+
+networks:
+  pipster-network:
+    driver: bridge

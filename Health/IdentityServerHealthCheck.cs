@@ -1,5 +1,4 @@
 ﻿using Duende.IdentityServer.ResponseHandling;
-using Duende.IdentityServer.Services;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Pipster.Identity.Health;
@@ -43,9 +42,7 @@ public class IdentityServerHealthCheck : IHealthCheck
                 { "discovery_endpoint", "healthy" }
             };
 
-            return HealthCheckResult.Healthy(
-                "IdentityServer is healthy",
-                data);
+            return HealthCheckResult.Healthy("IdentityServer is healthy",  data);
         }
         catch (Exception ex)
         {

@@ -1,0 +1,33 @@
+# ==================================
+# Simple Debug Dockerfile for Visual Studio
+# ==================================
+FROM mcr.microsoft.com/dotnet/sdk:9.0
+
+WORKDIR /src
+
+# Install debugger
+RUN curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
+
+# Install required tools
+RUN apt-get update && \
+    apt-get install -y wget curl procps && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy project file and restore
+COPY ["pipster.identity.csproj", "./"]
+RUN dotnet restore "pipster.identity.csproj"
+
+# Copy everything else
+COPY . .
+
+# Build in debug mode
+RUN dotnet build "pipster.identity.csproj" -c Debug -o /src/bin/Debug/net9.0
+
+EXPOSE 80
+
+ENV ASPNETCORE_URLS=http://+:80 \
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_USE_POLLING_FILE_WATCHER=true
+
+# Run the DLL directly instead of using dotnet run
+ENTRYPOINT ["dotnet", "/src/bin/Debug/net9.0/pipster.identity.dll"]
