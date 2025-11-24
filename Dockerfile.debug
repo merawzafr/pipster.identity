@@ -1,33 +1,32 @@
-# ==================================
-# Simple Debug Dockerfile for Visual Studio
-# ==================================
 FROM mcr.microsoft.com/dotnet/sdk:9.0
 
-WORKDIR /src
+# Install tools needed for debugging and healthchecks
+RUN apt-get update && \
+    apt-get install -y wget curl procps unzip && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install debugger
+# Install vsdbg for Visual Studio remote debugging
 RUN curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 
-# Install required tools
-RUN apt-get update && \
-    apt-get install -y wget curl procps && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /src
 
 # Copy project file and restore
 COPY ["pipster.identity.csproj", "./"]
 RUN dotnet restore "pipster.identity.csproj"
 
-# Copy everything else
+# Copy source code
 COPY . .
 
-# Build in debug mode
-RUN dotnet build "pipster.identity.csproj" -c Debug -o /src/bin/Debug/net9.0
+# Build the application
+RUN dotnet build "pipster.identity.csproj" -c Debug -o /app
+
+WORKDIR /app
 
 EXPOSE 80
 
 ENV ASPNETCORE_URLS=http://+:80 \
     ASPNETCORE_ENVIRONMENT=Development \
-    DOTNET_USE_POLLING_FILE_WATCHER=true
+    DOTNET_USE_POLLING_FILE_WATCHER=1
 
-# Run the DLL directly instead of using dotnet run
-ENTRYPOINT ["dotnet", "/src/bin/Debug/net9.0/pipster.identity.dll"]
+# This entrypoint will be overridden by VS, but we need it for standalone runs
+ENTRYPOINT ["dotnet", "pipster.identity.dll"]

@@ -1,0 +1,24 @@
+{
+    "$schema": "https://json.schemastore.org/launchsettings.json",
+    "profiles": {
+        "http": {
+            "commandName": "Project",
+            "launchBrowser": true,
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "dotnetRunMessages": true,
+            "applicationUrl": "http://localhost:5000"
+        },
+        "Docker Compose": {
+            "commandName": "DockerCompose",
+            "commandVersion": "1.0",
+            "composeLaunchAction": "LaunchBrowser",
+            "composeLaunchUrl": "http://localhost:5000",
+            "serviceActions": {
+                "identity": "StartWithoutDebugging",
+                "postgres": "StartWithoutDebugging"
+            }
+        }
+    }
+}

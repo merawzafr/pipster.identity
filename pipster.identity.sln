@@ -5,6 +5,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "pipster.identity", "pipster.identity.csproj", "{4463AED0-9DD2-4280-BF16-8B090E5028FD}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4463AED0-9DD2-4280-BF16-8B090E5028FD} = {4463AED0-9DD2-4280-BF16-8B090E5028FD}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

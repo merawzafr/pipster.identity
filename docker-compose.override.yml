@@ -8,32 +8,29 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      
-      # Database connection
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-pipster_identity};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
-      
-      # Logging
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=pipster_identity;Username=postgres;Password=postgres
       - Logging__LogLevel__Default=Information
       - Logging__LogLevel__Microsoft.AspNetCore=Information
-      - Logging__LogLevel__Microsoft.Hosting.Lifetime=Information
-      
+      - Logging__LogLevel__Duende=Information
     ports:
       - "5000:80"
-    
     depends_on:
-      postgres:
-        condition: service_healthy
-    
+      - postgres
     networks:
       - pipster-network
-    
-    # Disable healthcheck for now
+    # Disable healthcheck to avoid blocking startup
     healthcheck:
       disable: true
 
   postgres:
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5432:5432"
+    # Simplify postgres healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

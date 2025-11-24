@@ -3,11 +3,12 @@
   <PropertyGroup Label="Globals">
     <ProjectVersion>2.1</ProjectVersion>
     <DockerTargetOS>Linux</DockerTargetOS>
-    <ProjectGuid>{12345678-1234-1234-1234-123456789012}</ProjectGuid>
+    <ProjectGuid>a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d</ProjectGuid>
     <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
-    <DockerServiceUrl>{Scheme}://localhost:{ServicePort}</DockerServiceUrl>
+    <DockerServiceUrl>{Scheme}://localhost:5000</DockerServiceUrl>
     <DockerServiceName>identity</DockerServiceName>
   </PropertyGroup>
+  
   <ItemGroup>
     <None Include="docker-compose.yml" />
     <None Include="docker-compose.override.yml">
@@ -15,5 +16,13 @@
     </None>
     <None Include=".dockerignore" />
     <None Include=".env" />
+  </ItemGroup>
+  
+  <!-- This is the critical section that links the docker service to the .NET project -->
+  <ItemGroup>
+    <DockerComposeProjectReference Include="pipster.identity.csproj">
+      <ProjectGuid>{4463aed0-9dd2-4280-bf16-8b090e5028fd}</ProjectGuid>
+      <ServiceName>identity</ServiceName>
+    </DockerComposeProjectReference>
   </ItemGroup>
 </Project>
